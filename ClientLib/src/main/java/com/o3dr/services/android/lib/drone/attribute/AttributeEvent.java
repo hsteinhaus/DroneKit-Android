@@ -171,6 +171,12 @@ public class AttributeEvent {
     public static final String STATE_VEHICLE_VIBRATION = PACKAGE_NAME + ".STATE_VEHICLE_VIBRATION";
 
     /**
+     * Signals vehicle drive health updates.
+     * @see {@link com.o3dr.services.android.lib.drone.property.State}
+     */
+    public static final String STATE_DRIVE_HEALTH = PACKAGE_NAME + ".STATE_DRIVE_HEALTH";
+
+    /**
      * Signals vehicle UID updates.
      * @see {@link com.o3dr.services.android.lib.drone.property.State}
      */

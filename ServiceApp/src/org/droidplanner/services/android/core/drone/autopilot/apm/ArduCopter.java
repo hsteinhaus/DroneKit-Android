@@ -4,11 +4,15 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 
+import com.MAVLink.common.msg_sys_status;
 import com.github.zafarkhaja.semver.Version;
 import com.MAVLink.Messages.MAVLinkMessage;
 import com.o3dr.android.client.apis.CapabilityApi;
 import com.o3dr.services.android.lib.drone.action.ControlActions;
+import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
+import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.attribute.error.CommandExecutionError;
+import com.o3dr.services.android.lib.drone.property.DriveHealth;
 import com.o3dr.services.android.lib.drone.property.Parameter;
 import com.o3dr.services.android.lib.model.ICommandListener;
 
@@ -28,11 +32,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /**
  * Created by Fredia Huya-Kouadio on 7/27/15.
  */
 public class ArduCopter extends ArduPilot {
     private static final Version BRAKE_FEATURE_FIRMWARE_VERSION = Version.forIntegers(3, 3, 0);
+    public static final int MAX_MOTORS = 8;
+
+    private int lastDriveHealth = -1;
 
     private final ConcurrentHashMap<String, ICommandListener> manualControlStateListeners = new ConcurrentHashMap<>();
 
@@ -161,4 +169,29 @@ public class ArduCopter extends ArduPilot {
 
         return true;
     }
+
+    @Override
+    protected void processSysStatus(msg_sys_status m_sys) {
+        super.processSysStatus(m_sys);
+        checkMotorLimits(m_sys);
+    }
+
+
+    private void checkMotorLimits(msg_sys_status sysStatus) {
+        if (sysStatus.errors_count1 != lastDriveHealth) {
+            lastDriveHealth = sysStatus.errors_count1;
+
+            for (int i=0; i< MAX_MOTORS; i++) {
+                boolean lower = (lastDriveHealth & (1<<i)) != 0;
+                boolean upper = ((lastDriveHealth>>8) & (1<<i)) != 0;
+
+                DriveHealth driveHealth = new DriveHealth(i, lower, upper);
+                com.o3dr.services.android.lib.drone.property.State state = (com.o3dr.services.android.lib.drone.property.State) getAttribute(AttributeType.STATE);
+                state.setDriveHealth(driveHealth);
+            }
+
+            notifyAttributeListener(AttributeEvent.STATE_DRIVE_HEALTH);
+        }
+    }
+
 }

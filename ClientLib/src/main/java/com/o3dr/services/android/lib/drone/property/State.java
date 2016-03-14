@@ -8,6 +8,8 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Arrays;
+
 /**
  * Created by fhuya on 10/28/14.
  */
@@ -30,6 +32,8 @@ public class State implements DroneAttribute {
     private boolean isTelemetryLive;
 
     private Vibration vehicleVibration = new Vibration();
+
+    private DriveHealth[] driveHealth;
 
     private final JSONObject vehicleUid;
 
@@ -61,6 +65,8 @@ public class State implements DroneAttribute {
 
         if(vibration != null)
             this.vehicleVibration = vibration;
+
+        this.driveHealth = null;
     }
 
     public boolean isConnected() {
@@ -155,6 +161,36 @@ public class State implements DroneAttribute {
         return vehicleVibration;
     }
 
+    public void setDriveHealth(DriveHealth[] driveHealth) {
+        this.driveHealth = driveHealth;
+    }
+
+    public void setDriveHealth(DriveHealth driveHealth) {
+        if (driveHealth == null || driveHealth.getMotorNumber()<0) {
+            return;
+        }
+
+        int motorNumber = driveHealth.getMotorNumber();
+        if (this.driveHealth== null) {
+            this.driveHealth = new DriveHealth[motorNumber+1];
+        }
+        else if (this.driveHealth.length < (motorNumber+1)) {
+            this.driveHealth = Arrays.copyOf(this.driveHealth, motorNumber + 1);
+        }
+        this.driveHealth[motorNumber] = driveHealth;
+    }
+
+    public DriveHealth getDriveHealth(int motorNumber) {
+        if (motorNumber >= 0 && driveHealth != null && motorNumber < driveHealth.length) {
+            return driveHealth[motorNumber];
+        }
+        return null;
+    }
+
+    public DriveHealth[] getDriveHealth() {
+        return driveHealth;
+    }
+
     public JSONObject getVehicleUid() {
         return vehicleUid;
     }
@@ -185,6 +221,7 @@ public class State implements DroneAttribute {
         dest.writeParcelable(this.ekfStatus, 0);
         dest.writeByte(isTelemetryLive ? (byte) 1 : (byte) 0);
         dest.writeParcelable(this.vehicleVibration, 0);
+        dest.writeParcelableArray(this.driveHealth, 0);
         dest.writeString(this.vehicleUid.toString());
     }
 
@@ -200,6 +237,7 @@ public class State implements DroneAttribute {
         this.ekfStatus = in.readParcelable(EkfStatus.class.getClassLoader());
         this.isTelemetryLive = in.readByte() != 0;
         this.vehicleVibration = in.readParcelable(Vibration.class.getClassLoader());
+        this.driveHealth = (DriveHealth[]) in.readParcelableArray(DriveHealth.class.getClassLoader());
 
         JSONObject temp;
         try {
